@@ -1,0 +1,26 @@
+# Ignore PDF files
+*.pdf
+
+# Ignore dataset folders
+*.csv
+*.h5
+*.npy
+*.zip
+*.tar.gz
+
+# Ignore large model checkpoints
+*.pt
+*.pth
+*.ckpt
+*.hdf5
+
+# Ignore temporary / environment files
+__pycache__/
+*.log
+.ipynb_checkpoints/
+.DS_Store
+plots.ipynb
+# Ignore venv or conda env
+venv/
+.env/
+*.yml
