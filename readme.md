@@ -10,9 +10,9 @@ CTDG-SSM is a unified spatiotemporal state-space framework that integrates tempo
 Note: To preserve anonymity for peer review, author names and affiliations are omitted.
 ---
 ## Requirements
-Python >= 3.10
-torch  >= 2.5.1
-torch-geometric>= 2.6.1
+- Python >= 3.10 
+- torch  >= 2.5.1 
+- torch-geometric>= 2.6.1 
 
 Other dependencies listed in requirements.txt
 Install dependencies via:
