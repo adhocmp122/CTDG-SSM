@@ -19,6 +19,7 @@ __pycache__/
 *.log
 .ipynb_checkpoints/
 .DS_Store
+avg_rank.ipynb
 plots.ipynb
 # Ignore venv or conda env
 venv/
