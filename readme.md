@@ -56,9 +56,9 @@ This repository supports three main tasks:
 
 Use the corresponding script/notebook depending on the task you want to run.  
 
-### Link Prediction: Arguments
+### Experiment: Arguments
 
-The script [`ssm_link_prediction.py`](ssm_link_prediction.py) supports the following arguments:
+The script [`ssm_link_prediction.py`](ssm_link_prediction.py),[`ssm_node_classification.py`](ssm_node_classification.py) supports the following arguments:
 
 #### Dataset & Files
 - `--dataset` *(str, default="lastfm")* — Dataset name (options: `enron`, `lastfm`, `wikipedia`, `lastfm`, `mooc`, `SocialEvo`, `reddit`, `uci`).  
@@ -95,3 +95,8 @@ The script [`ssm_link_prediction.py`](ssm_link_prediction.py) supports the follo
 ```bash
 # Run link prediction on the Enron dataset
 python ssm_link_prediction.py --dataset enron --epochs 50 --lr 0.001 --hidden_dim 128
+```
+```bash
+# Run node classification on the wiki dataset
+python ssm_node_classification.py --dataset wikipedia --epochs 50 --lr 0.001 --hidden_dim 128
+```
