@@ -73,8 +73,8 @@ The script [`ssm_link_prediction.py`](ssm_link_prediction.py) supports the follo
 - `--hidden_dim` *(int, default=64)* — Hidden dimension size.  
 - `--embd_dim` *(int, default=16)* — Embedding dimension size.  
 - `--context` *(int, default=10)* — Context window size.  
-- `--reg` *(float, default=1e-2)* — Regularization weight.  
-- `--delta` *(float, default=1e-3)* — Delta parameter for temporal updates.  
+- `--reg` *(float, default=1e-2)* — $\lambda$ Regularization weight for polynomial of type $p(L) = I + \lambda L$  
+
 
 #### Optimizer
 - `--lr` *(float, default=1e-3)* — Learning rate.  
@@ -85,11 +85,11 @@ The script [`ssm_link_prediction.py`](ssm_link_prediction.py) supports the follo
 - `--batches` *(int, default=128)* — Batch size.  
 - `--u_batch` *(bool, default=False)* — Enable/disable user batching.  
 - `--runs` *(int, default=5)* — Number of runs for averaging.  
-- `--negative` *(str, default="RNS")* — Negative sampling strategy.  
+
 
 #### Misc
 - `--device` *(str, default="cuda")* — Device to use (`cuda` or `cpu`).  
-- `--name` *(str, default="Experiment_")* — Experiment name prefix.  
+- `--name` *(str, default="Experiment_")* — Experiment name prefix to save checkpoint models
 
 ---
 
