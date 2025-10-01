@@ -31,10 +31,10 @@ To prepare the data:
 3. After extraction, the folder should contain both the `.csv` and `.npy` files.
 
 For example, for the **Enron** dataset, the structure should look like:
-
+```
 processed_data/
 └── enron/
 ├── ml_enron.csv
 └── ml_enron.npy
-
+```
 Make sure this structure is preserved for the code to run correctly.
