@@ -6,8 +6,6 @@ Submitted to ICLR 2026.
 ---
 ## Overview
 CTDG-SSM is a unified spatiotemporal state-space framework that integrates temporal memory compression with topology-aware propagation, enabling the long-range time and long-range space dependencies in CTDGs.
-
-Note: To preserve anonymity for peer review, author names and affiliations are omitted.
 ---
 ## Requirements
 - Python >= 3.10 

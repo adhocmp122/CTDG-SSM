@@ -80,31 +80,6 @@ class StateProjection(nn.Module):
         return h_t + delt_t[:,None]*self.w(h_t)
     
 
-class SingleHeadSelfAttention(nn.Module):
-    def __init__(self, dim):
-        super().__init__()
-        self.q_proj = nn.Linear(dim, dim)
-        self.k_proj = nn.Linear(dim, dim)
-        self.v_proj = nn.Linear(dim, dim)
-        self.out_proj = nn.Linear(dim, dim)  # Optional final projection
-
-    def forward(self, x):
-        # x: [n, d]
-        Q = self.q_proj(x)  # [n, d]
-        K = self.k_proj(x)  # [n, d]
-        V = self.v_proj(x)  # [n, d]
-
-        # Compute attention scores: [n, n]
-        attn_scores = Q @ K.T  # dot product between all pairs
-        attn_scores = attn_scores / (x.size(-1) ** 0.5)  # scale
-
-        attn_weights = F.softmax(attn_scores, dim=-1)  # [n, n]
-
-        # Weighted sum of values
-        out = attn_weights @ V  # [n, d]
-
-        return self.out_proj(out)  # optional linear projection
-
 class Time2Vec(nn.Module):
     """
     Time2Vec layer from Shukla et al. 2020.
@@ -139,22 +114,6 @@ class Time2Vec(nn.Module):
 
         return torch.cat([linear, periodic], dim=1)  # [N, k+1]
     
-class TimeIntegratedGAT(torch.nn.Module):
-    def __init__(self, base_operator, steps=10):
-        super().__init__()
-        self.base_operator = base_operator
-        self.steps = steps
-
-    def forward(self, x, edge_index_l1, edge_index_l2):
-        ts = torch.linspace(0, 1, self.steps, device=x.device)
-        h = ts[1] - ts[0]
-        result = 0
-        for t in ts:
-            xt = x * t  # Optionally scale by t
-            out = self.base_operator(xt, edge_index_l1, edge_index_l2)
-            result += out
-        return result * h
-
     
 class static_embedding(torch.nn.Module):
     def __init__(self,out_dims,num_nodes,typ='LR',device='cuda'):
@@ -188,30 +147,6 @@ class static_embedding(torch.nn.Module):
             return self.encoder[idx]
         else:
             return self.encoder(idx)
-        
-
-
-
-class GATExpAt(torch.nn.Module):
-    def __init__(self, in_dim, hidden_dim,heads=2):
-        super().__init__()
-        self.gat_l2 = GATConv(in_dim, hidden_dim, heads=heads, concat=True)
-        self.gat_l1 = GATConv(hidden_dim * heads, hidden_dim, heads=1, concat=False)
-
-    def forward(self, x, edge_index_l1, edge_index_l2):
-        # Approximate P(L_2)
-        x = F.elu(self.gat_l2(x, edge_index_l2))
-        # Approximate P(L_1)^{-1} as second GAT
-        x = F.elu(self.gat_l1(x, edge_index_l1))
-        return x
-
-class PL1InverseApprox(nn.Module):
-    def __init__(self, in_dim, out_dim):
-        super().__init__()
-        self.gat = GATConv(in_dim, out_dim, heads=1, concat=False)
-
-    def forward(self, x, edge_index_l1):
-        return F.elu(self.gat(x, edge_index_l1))  # Approximate P(L1)^-1 x
 
 
 class MemoryModel(nn.Module):
@@ -225,13 +160,14 @@ class MemoryModel(nn.Module):
         self.input_dim = input_dim
 
         self.update_type = update_type
-        if self.update_type == 'HiPPO':
-            A,B_h = init_hippo_matrices(hidden_dim,1)
-            self.A_hippo = nn.Parameter(A.to(device),requires_grad=False)
-            self.B_hippo = nn.Parameter(B_h.to(device),requires_grad=True)
-        else :
-            self.A_log_1 = nn.Parameter(torch.randn(self.hidden_dim))
-            self.A_log_2 = nn.Parameter(torch.randn(self.hidden_dim))
+        # if self.update_type == 'HiPPO':
+        #     A,B_h = init_hippo_matrices(hidden_dim,1)
+        #     self.A_hippo = nn.Parameter(A.to(device),requires_grad=False)
+        #     self.B_hippo = nn.Parameter(B_h.to(device),requires_grad=True)
+        # else :
+
+        self.A_log_1 = nn.Parameter(torch.randn(self.hidden_dim))
+        self.A_log_2 = nn.Parameter(torch.randn(self.hidden_dim))
 
         self.device = device
         self.rms_1 = RMSNorm(hidden_dim)
@@ -248,6 +184,7 @@ class MemoryModel(nn.Module):
         #     nn.init.zeros_(self.B1.bias)
         #     nn.init.zeros_(self.B2.bias)
 
+        self.project_t = StateProjection(input_dim=self.hidden_dim,output_dim=self.hidden_dim)
         A,B_h = init_hippo_matrices(hidden_dim,self.input_dim)
         self.w = nn.Parameter(torch.tensor([0.25,10.0,20.0]).to(device),requires_grad=True)
         # self.A_hippo = nn.Parameter(A.to(device),requires_grad=False)
@@ -264,11 +201,11 @@ class MemoryModel(nn.Module):
 
         self._init_dt_bias(1e-3, 1e-1)
 
-        # self.NodeClassificaiton = nn.Sequential(
-        #     nn.Linear(self.hidden_dim, self.hidden_dim),
-        #     nn.ReLU(),
-        #     nn.Linear(self.hidden_dim,1),
-        # )
+        self.NodeClassificaiton = nn.Sequential(
+            nn.Linear(self.hidden_dim+self.time_dim+1, 1),
+            # nn.ReLU(),
+            # nn.Linear(self.hidden_dim,1),
+        )
 
         self.PredictionMap = nn.Sequential(
             nn.Linear(2*self.embd_dims+2*self.hidden_dim+self.time_dim+1, 1),

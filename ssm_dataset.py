@@ -20,6 +20,7 @@ class active_data:
         self.L_out = torch.empty(0)
         self.label_t = torch.empty(0)
         self.total = 0
+        self.end_train = False
         pass
         
 class TemporalEdgeDataset(torch.utils.data.Dataset):
@@ -31,9 +32,8 @@ class TemporalEdgeDataset(torch.utils.data.Dataset):
 
         if mode=='train':
             self.neighbour,self.ntimes,self.offset = build_neighbor_index_torch(self.src,self.dst,self.times,num_node,device=device)
-        else:
+        elif mode == 'eval' :
             self.random_seed = eval_seed
-
             self.inductive_mask = inductive_mask
             c_src = torch.tensor(c_src, dtype=torch.long, device=device)
             c_dst = torch.tensor(c_dst, dtype=torch.long, device=device)
@@ -41,6 +41,8 @@ class TemporalEdgeDataset(torch.utils.data.Dataset):
             
             self.neighbour,self.ntimes,self.offset = build_neighbor_index_torch(c_src,c_dst,c_time,num_node,device=device)
         
+
+
         # self.uni_timestamps = torch.unique(self.times)
         self.edge_features = torch.tensor(edge_features, dtype=torch.float,device=device)
         self.device = device
@@ -62,18 +64,14 @@ class TemporalEdgeDataset(torch.utils.data.Dataset):
         if self.n_mode == 'eval':
             self.test_edge_set = test_edge_set
 
-        self.historical_edge = set()
-
-        # elif self.negative == 'INS':
-        #     self.observed_train =  torch.ones(self.num_node, dtype=torch.bool, device=device)
-        #     self.observed_train[self.dst[:inductive_cut]]=False # False for dst seen in testing
-        #     self.observed_test = torch.zeros(self.num_node, dtype=torch.bool, device=device)
+        if self.task == 'LP':
+            self.historical_edge = set()
 
         if unique_batch :
             self.start,self.end = batch_indices_fast(self.src,self.dst,B=self.T,num_nodes=num_node)
 
         if task == 'NC':
-            self.labels = torch.tensor(labels, dtype=torch.float,device=device)[:len(times)]
+            self.labels = torch.tensor(labels, dtype=torch.float,device=device) #[:len(times)]
 
 
 
@@ -105,17 +103,18 @@ class TemporalEdgeDataset(torch.utils.data.Dataset):
         tau = self.times[t_start]
         src_t = self.src[t_start:t_end]
         dst_t = self.dst[t_start:t_end]
-        total = 2*len(src_t)
         
-        if self.n_mode=='eval':
+        
+        if self.n_mode=='eval' and self.task == 'LP':
             g = torch.Generator(device=self.device)
             g.manual_seed(idx+len(self.times))
             data.inductive_mask = self.inductive_mask[t_start:t_end]
+        
 
+        total = 2*len(src_t)
         t_nodes_id = torch.arange(total).to(self.device)
         combined_nodes = torch.hstack([src_t,dst_t])
 
-        
         if self.task == 'NC':
             data.label_t = self.labels[t_start:t_end].to(self.device)
             data.src_t = src_t
@@ -230,8 +229,9 @@ class TemporalEdgeDataset(torch.utils.data.Dataset):
 
 
         # if self.negative == 'HNS': # Add Historical Edges
-        u,v = src_t.tolist(),dst_t.tolist()
-        self.historical_edge.update((ue,ve) for ue,ve in zip(u,v))
+        if self.task == 'LP':
+            u,v = src_t.tolist(),dst_t.tolist()
+            self.historical_edge.update((ue,ve) for ue,ve in zip(u,v))
 
         com_neighbours = temporal_sample_neighbors(combined_nodes,self.neighbour,self.ntimes,self.offset,tau=tau,k=self.T)
         com_mask = com_neighbours>-1

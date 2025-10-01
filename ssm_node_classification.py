@@ -58,37 +58,30 @@ def run_training(args):
         get_node_classification_data(dataset_name=args.dataset, val_ratio=args.val_ratio, test_ratio=args.test_ratio)
 
     # Time normalization + encoding
-    edge_raw_features = edge_raw_features[1:]   # remove first invalid entry
+    # edge_raw_features = edge_raw_features[1:]   # remove first invalid entry
     scale = 3600
-    timestamps = train_data.node_interact_times / scale
-    val_timestamps = val_data.node_interact_times / scale
-    validation_time = val_timestamps.min()
-    eval_time = val_timestamps.max()
+    train_data.node_interact_times = train_data.node_interact_times / scale
+    val_data.node_interact_times = val_data.node_interact_times / scale
+    test_data.node_interact_times = test_data.node_interact_times / scale
     full_data.node_interact_times = full_data.node_interact_times / scale
-
-    # Merge train + val
-    train_data.node_interact_times = np.hstack((timestamps, val_timestamps))
-    train_data.src_node_ids = np.hstack((train_data.src_node_ids, val_data.src_node_ids))
-    train_data.dst_node_ids = np.hstack((train_data.dst_node_ids, val_data.dst_node_ids))
-
-    # Encode time
-    train_data.encoded_time = positional_encoding_mixer(train_data.node_interact_times, args.time_dim)
-    full_data.encoded_time = positional_encoding_mixer(full_data.node_interact_times, args.time_dim)
-
-    # Special handling for certain datasets
-    if args.dataset in ['enron', 'uci']:
-        edge_raw_features += 1
-        edge_raw_features = edge_raw_features.mean(axis=-1)[:, None]
 
     # Add edge features
     edge_raw_features, tmx = add_edge_features(
         full_data.src_node_ids,
         full_data.dst_node_ids,
         full_data.node_interact_times,
-        edge_raw_features,
+        edge_raw_features[1:],
         positional_encoding_mixer,
         args.time_dim
     )
+
+    #add_dud
+    edge_feat_dim = edge_raw_features.shape[1]
+    zero_padd = np.zeros((1,edge_feat_dim))
+    edge_raw_features = np.vstack((zero_padd,edge_raw_features))
+    fin_tmx = np.zeros((len(tmx)+1,))
+    fin_tmx[1:] = tmx
+    tmx = fin_tmx 
 
     edge_feat_dim = edge_raw_features.shape[1]
     total_nodes = node_raw_features.shape[0]
@@ -100,39 +93,77 @@ def run_training(args):
         train_data.src_node_ids,
         train_data.dst_node_ids,
         train_data.node_interact_times,
-        edge_raw_features,
-        train_data.encoded_time,
+        edge_raw_features[train_data.edge_ids],
+        biparted=False,
         T=args.batches,
         num_node=total_nodes,
-        validation_time=validation_time,
-        LastInteraction=tmx,
+        LastInteraction=tmx[train_data.edge_ids],
         context_window=args.context,
-        mode=args.mode,
+        mode='train',
         device=args.device,
         task='NC',
         unique_batch=args.u_batch,
-        labels=full_data.labels
+        labels=train_data.labels
     )
+
+        # Dataset wrapper
+
+    # Merge train + val
+    c_time = np.hstack((train_data.node_interact_times, val_data.node_interact_times))
+    c_src = np.hstack((train_data.src_node_ids, val_data.src_node_ids))
+    c_dst = np.hstack((train_data.dst_node_ids, val_data.dst_node_ids))
+
+
+    TGD_val = TemporalEdgeDataset(
+        val_data.src_node_ids,
+        val_data.dst_node_ids,
+        val_data.node_interact_times,
+        edge_raw_features[val_data.edge_ids],
+        biparted=False,
+        T=args.batches,
+        num_node=total_nodes,
+        LastInteraction=tmx[val_data.edge_ids],
+        context_window=args.context,
+        mode='eval',
+        device=args.device,
+        task='NC',
+        unique_batch=args.u_batch,
+        labels=val_data.labels,
+        c_dst= c_dst,
+        c_time=c_time,
+        c_src=c_src
+    )
+
+    c_dst = np.hstack((c_dst,test_data.dst_node_ids))
+    c_src = np.hstack((c_src,test_data.src_node_ids))
+    c_time = np.hstack((c_time,test_data.node_interact_times))
+
+    TGD_test = TemporalEdgeDataset(
+    test_data.src_node_ids,
+    test_data.dst_node_ids,
+    test_data.node_interact_times,
+    edge_raw_features[test_data.edge_ids],
+    biparted=False,
+    T=args.batches,
+    num_node=total_nodes,
+    LastInteraction=tmx[test_data.edge_ids],
+    context_window=args.context,
+    mode='eval',
+    device=args.device,
+    task='NC',
+    unique_batch=args.u_batch,
+    labels=test_data.labels,
+    c_dst=c_dst,
+    c_src=c_src,
+    c_time=c_time
+    )
+
     # torch.autograd.set_detect_anomaly(True)
 
-    # Dataset wrapper
-    TGD_full = TemporalEdgeDataset(
-        full_data.src_node_ids,
-        full_data.dst_node_ids,
-        full_data.node_interact_times,
-        edge_raw_features,
-        full_data.encoded_time,
-        T=args.batches,
-        num_node=total_nodes,
-        validation_time=eval_time,
-        LastInteraction=tmx,
-        context_window=args.context,
-        mode=args.mode,
-        device=args.device,
-        task='NC',
-        unique_batch=args.u_batch,
-        labels=full_data.labels
-    )
+    print("Arguments used:")
+    for arg, value in vars(args).items():
+        print(f"  {arg}: {value}")
+    print(f'Training/ Testing model for {args.runs} runs')
 
     print(f'Hidden Dim: {args.hidden_dim}, Input Dim: {edge_feat_dim}, Context: {args.context}, Node Embedding dims: {args.embd_dim}')
     print(f'Training/ Testing model for {args.runs} runs')
@@ -153,19 +184,24 @@ def run_training(args):
             update_type='HiPPO'
         ).to(args.device)
 
+        #  Count only trainable parameters
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print("Trainable parameters:", trainable_params)
+
         # Optimizer + training
         optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
 
-        val_auc_run = main(
+        test_auc = main(
             model=model,
-            full_dataset=TGD_full,
+            val_dataset=TGD_val,
+            test_dataset=TGD_test,
             train_dataset=TGD,
             optimizer=optimizer,
             name=args.name,
             num_epochs=args.epochs,
             device=args.device
         )
-        val_auc.append(val_auc_run)
+        val_auc.append(test_auc)
     print(f'All Auc : {val_auc}')
     print(f'Test from runs Mean AUC: {np.mean(val_auc):.4f} Std AUC: {np.std(val_auc):.4f} ')
 
@@ -184,9 +220,9 @@ if __name__ == "__main__":
     parser.add_argument("--test_ratio", type=float, default=0.15)
 
     # Model params
-    parser.add_argument("--time_dim", type=int, default=2)
-    parser.add_argument("--hidden_dim", type=int, default=128)
-    parser.add_argument("--embd_dim", type=int, default=8)
+    parser.add_argument("--time_dim", type=int, default=16)
+    parser.add_argument("--hidden_dim", type=int, default=32)
+    parser.add_argument("--embd_dim", type=int, default=16)
 
     parser.add_argument("--context", type=int, default=10)
     parser.add_argument("--mode", type=str, default="FX")
