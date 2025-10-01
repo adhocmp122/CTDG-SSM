@@ -38,3 +38,22 @@ processed_data/
 └── ml_enron.npy
 ```
 Make sure this structure is preserved for the code to run correctly.
+
+### Running Experiments
+
+This repository supports three main tasks:
+
+- **Sequence Classification** → Run via [`ssm_seq_classification.ipynb`](ssm_seq_classification.ipynb)  
+- **Node Classification** → Run via [`ssm_node_classification.py`](ssm_node_classification.py)  
+- **Link Prediction** → Run via [`ssm_link_prediction.py`](ssm_link_prediction.py)  
+
+### Code Structure
+
+- **`ssm_memory.py`** — Defines the memory class with update mechanisms.  
+- **`ssm_dataset.py`** — Implements the dataset class with sampling and batching utilities.  
+- **`ssm_learn.py`** — Training code for link prediction.  
+- **`ssm_nc_learn.py`** — Training code for node classification.  
+- **`ssm_utils.py`** — Contains utility functions including neighbor sampling, Laplacian generation, and other graph operations.  
+- **`utils/`** — Additional helper functions and utilities.  
+
+Use the corresponding script/notebook depending on the task you want to run.  
