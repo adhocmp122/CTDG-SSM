@@ -18,3 +18,22 @@ Other dependencies listed in requirements.txt
 Install dependencies via:
 ```bash
 pip install -r requirements.txt
+
+### Dataset Setup
+
+The experimental data is provided in the `processed_data` directory. Each dataset is stored as a compressed `.7z` archive inside its respective subfolder.
+
+To prepare the data:
+
+1. Navigate to the corresponding subfolder under `processed_data/`.
+2. Extract the `.7z` file in that subfolder.
+3. After extraction, the folder should contain both the `.csv` and `.npy` files.
+
+For example, for the **Enron** dataset, the structure should look like:
+
+processed_data/
+└── enron/
+├── ml_enron.csv
+└── ml_enron.npy
+
+Make sure this structure is preserved for the code to run correctly.
