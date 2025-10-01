@@ -18,6 +18,7 @@ Other dependencies listed in requirements.txt
 Install dependencies via:
 ```bash
 pip install -r requirements.txt
+```
 
 ### Dataset Setup
 
