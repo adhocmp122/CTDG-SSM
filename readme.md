@@ -63,10 +63,9 @@ Use the corresponding script/notebook depending on the task you want to run.
 The script [`ssm_link_prediction.py`](ssm_link_prediction.py) supports the following arguments:
 
 #### Dataset & Files
-- `--dataset` *(str, default="lastfm")* — Dataset name (e.g., `enron`, `lastfm`, `wikipedia`).  
+- `--dataset` *(str, default="lastfm")* — Dataset name (options: `enron`, `lastfm`, `wikipedia`, `lastfm`, `mooc`, `SocialEvo`, `reddit`, `uci`).  
 - `--val_ratio` *(float, default=0.15)* — Validation split ratio.  
 - `--test_ratio` *(float, default=0.15)* — Test split ratio.  
-- `--config` *(str, default=None)* — Path to a YAML/JSON config file (overrides CLI arguments).  
 
 #### Model Parameters
 - `--time_dim` *(int, default=16)* — Dimension of time embeddings.  
