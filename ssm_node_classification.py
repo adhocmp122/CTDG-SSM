@@ -173,7 +173,7 @@ def run_training(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Temporal Link Prediction Training")
+    parser = argparse.ArgumentParser(description="Temporal Node Classification Training")
 
     # Config file option
     parser.add_argument("--config", type=str, help="Path to YAML/JSON config file", default=None)
