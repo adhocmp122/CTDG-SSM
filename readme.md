@@ -1,8 +1,8 @@
 # CTDG-SSM
 This repository contains the reference implementation of the method described in the paper:
 
-*CTDG-SSM: Continuous-time Dynamic Graph State-Space Models for Long Range Propagation*
-Submitted to ICLR 2026.
+*Learning Long Range Spatio-Temporal Representations over Continuous Time Dynamic Graphs with State Space Models*
+Submitted to ICML 2026.
 ---
 ## Overview
 CTDG-SSM is a unified spatiotemporal state-space framework that integrates temporal memory compression with topology-aware propagation, enabling the long-range time and long-range space dependencies in CTDGs.
